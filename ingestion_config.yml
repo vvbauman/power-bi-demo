@@ -5,7 +5,7 @@ SILVER_SAVE_DIR : 'C:/Users/valerie.bauman/Documents/GitHub/sample-work-loan-app
 SAVE_SILVER : False
 BRONZE_MERGED_FILE : 'bronze_merged.csv'
 
-ingest : 
+ingest : # Used in src/ingestion/ingest_bronze_tables.py
   log_name : 'IngestMergeLoanTables'
   bronze_account : 'account.txt'
   bronze_card : 'card.txt'
