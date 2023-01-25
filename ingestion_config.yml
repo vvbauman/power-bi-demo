@@ -1,4 +1,4 @@
-FROM_SCRATCH : False
+FROM_SCRATCH : True
 DATA_URL : 'https://raw.githubusercontent.com/vvbauman/sample-work-loan-application/feature/data-ingestion/dataset/'
 SILVER_SAVE_DIR : 'C:/Users/valerie.bauman/Documents/GitHub/sample-work-loan-application/dataset/silver/'
 SAVE_SILVER : False
