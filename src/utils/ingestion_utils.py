@@ -88,7 +88,10 @@ def drop_nulls(df : pd.DataFrame, subset : list = [], logger : logging.Logger = 
     elif percent_null < 0.05:
         if isinstance(logger, logging.Logger):
             logger.warning('Less than 5% of rows are missing data. Returned dataframe is same as input dataframe with these rows dropped')
-        return df.dropna(subset= subset)
+        if len(subset) > 0:
+            return df.dropna(subset= subset)
+        else:
+            return df.dropna()
     else:
         if isinstance(logger, logging.Logger):
             logger.warning('More than 5% of rows are missing data. Returning dataframe without dropping rows')

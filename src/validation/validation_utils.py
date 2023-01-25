@@ -19,12 +19,13 @@ def validate_schema(df : pd.DataFrame, schema : pa.DataFrameSchema, cols : list 
     msg : str describing results of schema check
     """
     try:
-        schema(df, lazy= True)
+        schema.validate(df, lazy= True)
+        print('ok')
         msg= 'Correct schema, no action needed'
     except:
         if (len(cols) > 0) & (not set(df.columns) >= set(cols)):
             msg= 'Provided schema does not match dataframe schema. Dataframe also does not have expected columns'
-        elif (len(cols) == 0) & (not set(df.columns) >= set(cols)):
+        elif (len(cols) == 0):
             msg= 'Provided schema does not match dataframe schema. Did not check for subset of columns - no argument provided to cols argument'
         elif (len(cols) > 0) & (set(df.columns) >= set(cols)):
             msg= 'Provided schema does not match dataframe schema but dataframe has expected columns'
