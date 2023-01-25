@@ -3,6 +3,8 @@ import numpy as np
 import pandera as pa
 
 from src.utils.ingestion_utils import ingest_flat_file, save_flat_file, drop_nulls
+from src.utils.logging_utils import create_logger
+from src.validation.validation_utils import validate_schema
 
 class IngestMergeLoanTables():
     def __init__(self, cf : dict, cf_m : dict) -> None:
@@ -18,7 +20,18 @@ class IngestMergeLoanTables():
         ----------
         cf (dict) : same as cf input argument. Configuration file with constants used across projects
         cf_m (dict) : same as cf_m input argument. Configuration file with constants used in this specific class
-        account (pd.DataFrame) : table containing account data. 
+        account (pd.DataFrame) : account data. Each rows is 1 account, columns are account descriptors
+        card (pd.DataFrame) : card data. Each row is 1 card, columns are card descriptors
+        client (pd.DataFrame) : client data. Each row is 1 client, columns are client descriptors
+        disp (pd.DataFrame) : data to relate a client to an account
+        district (pd.DataFrame) : demographic characteristics of a district. Each row is 1 district, columns are district descriptors
+        loan (pd.DataFrame) : loan data. Each row is 1 loan assigned to an account. 
+                            For the "status" column, "A" is a good loan that is finished, "B" is a bad loan that is finished, 
+                            "C" is a good loan that is unfinished, "D" is a bad loan that is unfinished
+        order (pd.DataFrame) : loan payment data. Each row is 1 payment made to a loan
+        transactions (pd.DataFrame) : account transaction data. Each row is 1 transaction made on an account
+        silver (pd.DataFrame) : account, card, client, disp, loan, order, and transcations data joined to create one dataframe
+        logger (logging.Logger) : log object to write log messages to
 
         Note: any empty attributes defined here are populated/re-defined within methods in this class
         
@@ -36,7 +49,7 @@ class IngestMergeLoanTables():
         self.transactions= pd.DataFrame([])
         self.silver= pd.DataFrame([])
 
-        # add logger
+        self.logger= create_logger(log_name= self.cf_m['log_name'], log_level= self.cf['LOG_LEVEL'])
 
     def get_silver_table(self, schema : pa.DataFrameSchema) -> pd.DataFrame:
         """ 
@@ -54,14 +67,18 @@ class IngestMergeLoanTables():
         """
         if self.cf['FROM_SCRATCH']:
             self.silver= self.ingest_bronze_tables().cast_bronze_dtypes().merge_bronze_tables()
-            # add validation 
+            self.logger.warning(validate_schema(df= self.silver, schema= schema))
+        
         else:
             self.silver= self.load_from_disk(schema= schema)
-            # add validation
+            self.logger.warning(validate_schema(df= self.silver, schema= schema))
         
         if self.cf['SAVE_SILVER']:
-            save_flat_file(path= self.cf['SILVER_SAVE_DIR'], filename= self.cf_m['bronze_merged_save_name'], df= self.silver)
-            # add log message
+            try:
+                save_flat_file(path= self.cf['SILVER_SAVE_DIR'], filename= self.cf_m['bronze_merged_save_name'], df= self.silver)
+                self.logger.debug(f'Write of merged bronze data successful (path: {self.cf["SILVER_SAVE_DIR"]}, filename: {self.cf_m["bronze_merged_save_name"]})')
+            except:
+                self.logger.warning(f'Unable to write merged bronze data. Check that the path and filename are correct (path: {self.cf["SILVER_SAVE_DIR"]}, filename: {self.cf_m["bronze_merged_save_name"]}')
 
         return self.silver
 
@@ -72,18 +89,18 @@ class IngestMergeLoanTables():
 
         Populates self attributes account, card, client, disp, district, loan, order, and transactions
         """
-        self.account= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_account'], sep= self.cf_m['bronze_table_sep']))
-        self.card= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_card'], sep= self.cf_m['bronze_table_sep']))
-        self.client= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_client'], sep= self.cf_m['bronze_table_sep']))
-        self.disp= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_disp'], sep= self.cf_m['bronze_table_sep']))
-        self.district= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_district'], sep= self.cf_m['bronze_table_sep']))
-        self.loan= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_loan'], sep= self.cf_m['bronze_table_sep']))
-        self.order= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_order'], sep= self.cf_m['bronze_table_sep']))
+        self.account= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_account'], sep= self.cf_m['bronze_table_sep']), logger= self.logger)
+        self.card= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_card'], sep= self.cf_m['bronze_table_sep']), logger= self.logger)
+        self.client= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_client'], sep= self.cf_m['bronze_table_sep']), logger= self.logger)
+        self.disp= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_disp'], sep= self.cf_m['bronze_table_sep']), logger= self.logger)
+        self.district= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_district'], sep= self.cf_m['bronze_table_sep']), logger= self.logger)
+        self.loan= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_loan'], sep= self.cf_m['bronze_table_sep']), logger= self.logger)
+        self.order= drop_nulls(df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_order'], sep= self.cf_m['bronze_table_sep']), logger= self.logger)
         self.transactions= drop_nulls(
             df= pd.read_csv(self.cf['DATA_URL'] + self.cf_m['bronze_transactions'], sep= self.cf_m['bronze_table_sep']), 
-            subset= self.cf_m['transactions_null_subset'])
+            subset= self.cf_m['transactions_null_subset'], logger= self.logger)
         
-        # add data validation on columns/dtypes
+        self.logger.debug('Successfully ingested all eight bronze tables and dropped null values')
 
         return self
     
@@ -100,7 +117,7 @@ class IngestMergeLoanTables():
         self.order= self.order.astype(self.cf_m['order_dtypes'])
         self.transactions= self.date_convert(df= self.transactions.astype(self.cf_m['transactions_dtypes']), date_col= self.cf_m['transactions_date_col'], date_format= self.cf_m['date_format'])
 
-        # add log message
+        self.logger.debug('Successfully cast dtypes of all bronze tables')
 
         return self
     
@@ -144,6 +161,7 @@ class IngestMergeLoanTables():
             .merge(self.disp, on= self.cf_m['account_id_merge_cols'], how = self.cf_m['account_id_merge_type'], suffixes= (self.cf_m['transactions_suffix'], self.cf_m['disp_suffix']))
             )
         except:
+            self.logger.error('Creation of account_id_merge failed in merge_bronze_tables() method')
             raise(Exception)
 
         try:
@@ -152,16 +170,18 @@ class IngestMergeLoanTables():
             .merge(self.card, on= self.cf_m['client_id_card_merge_cols'], how= self.cf_m['client_id_card_merge_type'], suffixes= (self.cf_m['client_disp_suffix'], self.cf_m['card_suffix']))
             )
         except:
+            self.logger.error('Creation of other_tables_merge failed in merge_bronze_tables() method')
             raise(Exception)
 
         try:
             silver= other_tables_merge.merge(account_id_merge, on= self.cf_m['account_id_merge_cols'], how= self.cf_m['account_id_merge_type'], suffixes= ('', self.cf_m['disp_id_suffix']))
-            # log message
+            self.logger.info('Creation of silver table container 7/8 bronze tables merged was successful')
         except:
+            self.logger.error('Merging of account_id_merge and other_tables_merge dataframes in merge_bronze_tables() method failed')
             raise(Exception)
         return silver
     
     def load_from_disk(self, schema : pa.DataFrameSchema):
         silver, msg= ingest_flat_file(path= self.cf['DATA_URL'], filename= self.cf['BRONZE_MERGED_FILE'], schema= schema)
-        # add log message
+        self.logger.warning(msg)
         return silver

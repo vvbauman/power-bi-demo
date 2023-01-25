@@ -1,3 +1,4 @@
+LOG_LEVEL : DEBUG
 FROM_SCRATCH : True
 DATA_URL : 'https://raw.githubusercontent.com/vvbauman/sample-work-loan-application/feature/data-ingestion/dataset/'
 SILVER_SAVE_DIR : 'C:/Users/valerie.bauman/Documents/GitHub/sample-work-loan-application/dataset/silver/'
@@ -5,6 +6,7 @@ SAVE_SILVER : False
 BRONZE_MERGED_FILE : 'bronze_merged.csv'
 
 ingest : 
+  log_name : 'IngestMergeLoanTables'
   bronze_account : 'account.txt'
   bronze_card : 'card.txt'
   bronze_client : 'client.txt'
