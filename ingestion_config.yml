@@ -1,0 +1,49 @@
+LOG_LEVEL : DEBUG
+FROM_SCRATCH : True
+DATA_URL : 'https://raw.githubusercontent.com/vvbauman/sample-work-loan-application/feature/data-ingestion/dataset/'
+SILVER_SAVE_DIR : 'C:/Users/valerie.bauman/Documents/GitHub/sample-work-loan-application/dataset/silver/'
+SAVE_SILVER : False
+BRONZE_MERGED_FILE : 'bronze_merged.csv'
+
+ingest : # Used in src/ingestion/ingest_bronze_tables.py
+  log_name : 'IngestMergeLoanTables'
+  bronze_account : 'account.txt'
+  bronze_card : 'card.txt'
+  bronze_client : 'client.txt'
+  bronze_disp : 'disp.txt'
+  bronze_district : 'district.txt'
+  bronze_loan : 'loan.txt'
+  bronze_order : 'order.txt'
+  bronze_transactions : 'trans.txt'
+  
+  bronze_table_sep: ';'
+  transactions_null_subset : ['trans_id', 'account_id', 'date']
+  account_id_merge_cols : ['account_id']
+  client_id_merge_cols : ['client_id']
+  client_id_card_merge_cols : ['disp_id']
+  account_id_merge_type : 'inner'
+  client_id_merge_type : 'inner'
+  client_id_card_merge_type : 'inner'
+  account_suffix : '_account'
+  loan_suffix : '_loan'
+  order_suffix : '_order'
+  client_suffix : '_client'
+  transactions_suffix : '_transactions'
+  disp_suffix : '_disp'
+  card_suffix : '_card'
+  client_disp_suffix : '_client_disp'
+  disp_id_suffix : '_disp_id'
+  date_format : '%y%m%d'
+  account_dtypes : {'account_id' : str, 'district_id' : str, 'frequency' : 'str', 'date' : str}
+  card_dtypes : {'card_id' : str, 'disp_id' : str, 'type' : str, 'issued': 'datetime64[ns]'}
+  client_dtypes: {'client_id' : str, 'birth_number' : str, 'district_id' : str}
+  disp_dtypes : {'disp_id' : str, 'client_id' : str, 'account_id' : str, 'type': str}
+  loan_dtypes : {'loan_id' : str, 'account_id' : str, 'date': int, 'amount': int, 'duration': int, 'payments': float, 'status': str}
+  order_dtypes : {'order_id' : str, 'account_id' : str, 'bank_to': str, 'account_to': str, 'amount': float, 'k_symbol': str}
+  transactions_dtypes : {'trans_id' : str, 'account_id' : str, 'date': str, 'type': str,  'operation': str, 'amount': float, 'balance': float, 'k_symbol': str, 'bank' : str, 'account': str}
+  account_date_col : 'date'
+  client_date_col : 'birth_number'
+  loan_date_col : 'date'
+  transactions_date_col : 'date'
+
+  bronze_merged_save_name : 'bronze_merged.csv'
