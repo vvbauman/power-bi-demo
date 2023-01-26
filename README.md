@@ -16,5 +16,16 @@ The dataset used in this repo is the PKDD'99 Financial dataset (https://relation
 
 Also, after branches are merged with the main branch, they are not deleted. The order that branches have been merged with main follows the order in the code block above
 
-## File descriptions
-TODO
+## Repo Directories & Files descriptions
+```
+- dataset : directory containing all datasets necessary for this project
+- notebooks : directory containing .ipynb notebooks used in EDA and development, as preambles to refactored code development
+- src : directory containing production-ready code
+└─ ingestion : refactored .py scripts for data ingestion and merging. Includes ingestion_main.py script for use in AML/sklearn pipeline
+└─ utils : scripts with utility functions used throughout the codebase
+└─ validation : scripts with panderas schemas and functions with data validation checks used throughout the codebase
+- unit_tests : directory containing scripts with pytest unit tests, to test functionality of utility functions
+- UML_diagram.png : UML diagram depicting relationships between classes in src
+- ingestion_config.yml : configuration file for scripts in src/ingestion/. Contains constants so they are not hard-coded in the scripts
+- setup.py : script to run to enable relative imports
+```
